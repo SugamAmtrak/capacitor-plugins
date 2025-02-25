@@ -246,58 +246,60 @@ public class PushNotificationsPlugin extends Plugin {
         remoteMessageData.put("data", data);
 
         RemoteMessage.Notification notification = remoteMessage.getNotification();
-        if (notification != null) {
-            String title = notification.getTitle();
-            String body = notification.getBody();
-            String[] presentation = getConfig().getArray("presentationOptions");
-            if (presentation != null) {
-                if (Arrays.asList(presentation).contains("alert")) {
-                    Bundle bundle = null;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        try {
-                            ApplicationInfo applicationInfo = getContext()
-                                .getPackageManager()
-                                .getApplicationInfo(
-                                    getContext().getPackageName(),
-                                    PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA)
-                                );
-                            bundle = applicationInfo.metaData;
-                        } catch (PackageManager.NameNotFoundException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        bundle = getBundleLegacy();
+        
+        String title = (notification != null) ? notification.getTitle() : "Amtrak Info";
+        String body = (notification != null) ? notification.getBody() : "Amtrak Notification";
+        
+        String[] presentation = getConfig().getArray("presentationOptions");
+        if (presentation != null) {
+            if (Arrays.asList(presentation).contains("alert")) {
+                Bundle bundle = null;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    try {
+                        ApplicationInfo applicationInfo = getContext()
+                            .getPackageManager()
+                            .getApplicationInfo(
+                                getContext().getPackageName(),
+                                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA)
+                            );
+                        bundle = applicationInfo.metaData;
+                    } catch (PackageManager.NameNotFoundException e) {
+                        e.printStackTrace();
                     }
+                } else {
+                    bundle = getBundleLegacy();
+                }
 
-                    if (bundle != null) {
-                        NotificationParams params = new NotificationParams(remoteMessage.toIntent().getExtras());
+                if (bundle != null) {
+                    NotificationParams params = new NotificationParams(remoteMessage.toIntent().getExtras());
 
-                        String channelId = CommonNotificationBuilder.getOrCreateChannel(
-                            getContext(),
-                            params.getNotificationChannelId(),
-                            bundle
-                        );
+                    String channelId = CommonNotificationBuilder.getOrCreateChannel(
+                        getContext(),
+                        params.getNotificationChannelId(),
+                        bundle
+                    );
 
-                        CommonNotificationBuilder.DisplayNotificationInfo notificationInfo = CommonNotificationBuilder.createNotificationInfo(
-                            getContext(),
-                            getContext(),
-                            params,
-                            channelId,
-                            bundle
-                        );
+                    CommonNotificationBuilder.DisplayNotificationInfo notificationInfo = CommonNotificationBuilder.createNotificationInfo(
+                        getContext(),
+                        getContext(),
+                        params,
+                        channelId,
+                        bundle
+                    );
 
-                        notificationManager.notify(notificationInfo.tag, notificationInfo.id, notificationInfo.notificationBuilder.build());
-                    }
+                    notificationManager.notify(notificationInfo.tag, notificationInfo.id, notificationInfo.notificationBuilder.build());
                 }
             }
-            remoteMessageData.put("title", title);
-            remoteMessageData.put("body", body);
+        }
+        remoteMessageData.put("title", title);
+        remoteMessageData.put("body", body);
+        if (notification != null) {
             remoteMessageData.put("click_action", notification.getClickAction());
+        }
 
-            Uri link = notification.getLink();
-            if (link != null) {
-                remoteMessageData.put("link", link.toString());
-            }
+        Uri link = (notification != null) ? notification.getLink() : null;
+        if (link != null) {
+            remoteMessageData.put("link", link.toString());
         }
 
         notifyListeners("pushNotificationReceived", remoteMessageData, true);
